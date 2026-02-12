@@ -1,19 +1,25 @@
 import chalk from 'chalk';
-import { LocalStorage } from '../storage/local.js';
+import ora from 'ora';
+import { StorageManager } from '../storage/manager.js';
 
 export async function restoreCommand(): Promise<void> {
-  const storage = new LocalStorage();
+  const spinner = ora('Restoring previous soul...').start();
 
-  const backupId = storage.restoreFromBackup();
+  try {
+    const storage = new StorageManager();
+    const restored = storage.restore();
 
-  if (!backupId) {
-    console.log(chalk.yellow('No backup found. Nothing to restore.'));
-    return;
+    if (!restored) {
+      spinner.fail('No backups found. Nothing to restore.');
+      process.exit(1);
+    }
+
+    spinner.succeed(
+      `Restored from backup ${chalk.dim(restored)}\n` +
+      `  ${chalk.yellow('⚠')}  Restart your OpenClaw session for changes to take effect.`
+    );
+  } catch (err: any) {
+    spinner.fail(err.message);
+    process.exit(1);
   }
-
-  console.log();
-  console.log(chalk.green(`✅ Workspace restored from backup: ${backupId}`));
-  console.log();
-  console.log(chalk.yellow('💡 Tip: Start a new session for full effect.'));
-  console.log();
 }

@@ -1,56 +1,61 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { RegistryClient } from '../registry/client.js';
-import { LocalStorage } from '../storage/local.js';
+import { StorageManager } from '../storage/manager.js';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
+import { ensureDir } from '../utils/config.js';
 
-export async function installCommand(name: string, options: { force?: boolean }): Promise<void> {
-  const registry = new RegistryClient();
-  const storage = new LocalStorage();
-
-  // 이미 설치 확인
-  if (storage.isInstalled(name) && !options.force) {
-    console.log(chalk.yellow(`Soul "${name}" is already installed. Use --force to overwrite.`));
-    return;
-  }
-
+export async function installCommand(nameWithVersion: string, options: { force?: boolean }): Promise<void> {
+  const [name, version] = nameWithVersion.split('@');
   const spinner = ora(`Installing soul "${name}"...`).start();
 
   try {
-    // 1. 메타데이터 가져오기
-    spinner.text = `Fetching metadata for "${name}"...`;
+    const storage = new StorageManager();
+    const registry = new RegistryClient();
+
+    // Check if already installed
+    if (storage.isInstalled(name) && !options.force) {
+      spinner.fail(`Soul "${name}" is already installed. Use ${chalk.yellow('--force')} to overwrite.`);
+      process.exit(1);
+    }
+
+    // Fetch metadata
+    spinner.text = `Fetching "${name}" metadata...`;
     const meta = await registry.getSoulMeta(name);
 
-    // 2. 파일 목록 가져오기
-    spinner.text = `Downloading files...`;
-    const files = await registry.getSoulFiles(name);
+    // Get file list and download each
+    spinner.text = `Downloading "${name}" files...`;
+    const fileList = await registry.getSoulFiles(name);
+    const files = new Map<string, string>();
 
-    // 3. 각 파일 다운로드 & 저장
-    let downloaded = 0;
-    for (const file of files) {
+    for (const filename of fileList) {
       try {
-        const content = await registry.downloadFile(name, file);
-        storage.saveSoulFile(name, file, content);
-        downloaded++;
+        const content = await registry.downloadFile(name, filename);
+        files.set(filename, content);
       } catch {
-        // README.md 등 선택 파일은 스킵
-        if (file === 'clawsoul.json' || file === 'SOUL.md') {
-          throw new Error(`Required file "${file}" not found`);
-        }
+        // Skip missing optional files
       }
     }
 
-    spinner.succeed(
-      chalk.green(`Installed ${meta.displayName || name} v${meta.version}`) +
-      chalk.gray(` (${downloaded} files)`)
-    );
+    // Save to souls directory
+    spinner.text = `Saving to local storage...`;
+    const soulDir = storage.getSoulDir(name);
+    ensureDir(soulDir);
 
-    console.log();
-    console.log(`  ${chalk.cyan('To apply:')}  clawsouls use ${name}`);
-    console.log(`  ${chalk.cyan('To list:')}   clawsouls list`);
-    console.log();
+    for (const [filename, content] of files) {
+      const filePath = join(soulDir, filename);
+      ensureDir(join(filePath, '..'));
+      writeFileSync(filePath, content, 'utf-8');
+    }
+
+    spinner.succeed(
+      `Installed ${chalk.green(meta.displayName || name)} v${meta.version || '?'}\n` +
+      `  ${chalk.dim(meta.description || '')}\n` +
+      `  Run ${chalk.cyan(`clawsouls use ${name}`)} to activate.`
+    );
   } catch (err: any) {
-    spinner.fail(chalk.red(`Failed to install "${name}"`));
-    console.error(chalk.red(`  ${err.message}`));
+    spinner.fail(err.message);
     process.exit(1);
   }
 }
