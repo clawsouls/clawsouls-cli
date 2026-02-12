@@ -17,7 +17,7 @@ const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 const DEFAULT_CONFIG: ClawSoulsConfig = {
   registry: 'https://api.clawsouls.ai',
-  cdn: process.env.CLAWSOULS_CDN || 'https://raw.githubusercontent.com/TomLeeLive/clawsouls/main/souls',
+  cdn: process.env.CLAWSOULS_CDN || 'https://raw.githubusercontent.com/clawsouls/souls/main',
   workspace: join(homedir(), '.openclaw', 'workspace'),
   soulsDir: join(homedir(), '.openclaw', 'souls'),
 };
