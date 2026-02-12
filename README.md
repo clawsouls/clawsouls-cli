@@ -55,6 +55,8 @@ Activate an installed soul. Your current workspace files are automatically backe
 clawsouls use minimalist
 ```
 
+**Automatic backup:** Before applying a new soul, the current workspace files (SOUL.md, IDENTITY.md, AGENTS.md, HEARTBEAT.md) are saved to `~/.openclaw/souls/_backup/<timestamp>/`. You can always revert with `clawsouls restore`.
+
 **Protected files** — these are never overwritten:
 - `USER.md` (your personal data)
 - `MEMORY.md` (your AI's memories)
@@ -62,11 +64,13 @@ clawsouls use minimalist
 
 ### `clawsouls restore`
 
-Revert to your previous soul from the latest backup.
+Revert to your previous soul from the latest backup (`~/.openclaw/souls/_backup/`).
 
 ```bash
 clawsouls restore
 ```
+
+Multiple backups are kept — each `use` creates a new timestamped backup, so you can safely switch between souls without losing any previous configuration.
 
 ### `clawsouls list`
 
