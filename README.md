@@ -3,7 +3,7 @@
 **Give your AI a soul.** Install, manage, and switch AI agent personas for [OpenClaw](https://github.com/openclaw/openclaw).
 
 [![npm](https://img.shields.io/npm/v/clawsouls)](https://www.npmjs.com/package/clawsouls)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 ## What is ClawSouls?
 
@@ -140,4 +140,4 @@ The spec is open — see [Soul Spec](https://github.com/clawsouls/clawsouls/blob
 
 ## License
 
-Apache 2.0 — see [LICENSE.md](LICENSE.md).
+Apache 2.0 — see [LICENSE](LICENSE).
