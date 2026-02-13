@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { createRequire } from 'node:module';
 import { installCommand } from '../commands/install.js';
 import { useCommand } from '../commands/use.js';
 import { restoreCommand } from '../commands/restore.js';
 import { listCommand } from '../commands/list.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../../package.json');
 
 const program = new Command();
 
 program
   .name('clawsouls')
   .description('AI agent persona manager for OpenClaw')
-  .version('0.1.0');
+  .version(version);
 
 program
   .command('install <name>')
