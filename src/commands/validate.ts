@@ -1,13 +1,14 @@
 import chalk from 'chalk';
 import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { ClawSoulSchema } from '../utils/validate.js';
+import { getSchema, LATEST_SPEC, SPEC_VERSIONS } from '../utils/validate.js';
 
-export async function validateCommand(dir?: string): Promise<void> {
+export async function validateCommand(dir?: string, options?: { spec?: string }): Promise<void> {
   const soulDir = dir || '.';
   const manifestPath = join(soulDir, 'clawsoul.json');
+  const specVersion = options?.spec || LATEST_SPEC;
 
-  console.log(chalk.bold(`Validating soul in ${soulDir}/\n`));
+  console.log(chalk.bold(`Validating soul in ${soulDir}/`) + chalk.dim(` (spec v${specVersion})\n`));
 
   let hasError = false;
   const pass = (msg: string) => console.log(chalk.green('  ✓ ') + msg);
@@ -32,11 +33,21 @@ export async function validateCommand(dir?: string): Promise<void> {
   }
 
   // 3. Validate against schema
-  const result = ClawSoulSchema.safeParse(raw);
+  let schema;
+  try {
+    schema = getSchema(specVersion);
+  } catch (err: any) {
+    fail(err.message);
+    const available = Object.keys(SPEC_VERSIONS).join(', ');
+    console.log(chalk.dim(`  Available versions: ${available}`));
+    process.exit(1);
+  }
+
+  const result = schema.safeParse(raw);
   if (result.success) {
-    pass('Schema validation passed');
+    pass(`Schema validation passed (spec v${specVersion})`);
   } else {
-    for (const issue of result.error.issues) {
+    for (const issue of (result as any).error.issues) {
       fail(`${issue.path.join('.')}: ${issue.message}`);
     }
   }

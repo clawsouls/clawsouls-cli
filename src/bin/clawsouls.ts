@@ -61,6 +61,7 @@ program
   .command('validate [dir]')
   .alias('check')
   .description('Validate a soul package against the spec')
-  .action((dir?: string) => validateCommand(dir));
+  .option('-s, --spec <version>', 'Spec version to validate against (e.g., 0.1, 0.2). Default: latest')
+  .action((dir?: string, options?: { spec?: string }) => validateCommand(dir, options));
 
 program.parse();
