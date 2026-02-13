@@ -21,6 +21,7 @@ export class RegistryClient {
   private cdn: string;
   private api: string;
   private isLocal: boolean;
+  private _apiCache: Map<string, Record<string, string>> = new Map();
 
   constructor() {
     const config = getConfig();
@@ -57,15 +58,38 @@ export class RegistryClient {
     return JSON.parse(content);
   }
 
-  /** Soul 파일 다운로드 — tries API fileContents first */
+  /** Reverse map filename to API key */
+  private filenameToKey(filename: string): string {
+    const map: Record<string, string> = {
+      'SOUL.md': 'soul',
+      'IDENTITY.md': 'identity',
+      'AGENTS.md': 'agents',
+      'HEARTBEAT.md': 'heartbeat',
+      'STYLE.md': 'style',
+      'README.md': 'readme',
+    };
+    return map[filename] || filename;
+  }
+
+  /** Soul 파일 다운로드 — tries API cache/fetch first */
   async downloadFile(name: string, filename: string): Promise<string> {
-    // Try API first
+    // Check cache first (populated by getSoulFiles)
+    const cached = this._apiCache.get(name);
+    if (cached) {
+      const key = this.filenameToKey(filename);
+      if (cached[key]) return cached[key];
+      if (cached[filename]) return cached[filename];
+    }
+
+    // Try API
     try {
       const res = await fetch(`${this.api}/souls/${name}?files=true`);
       if (res.ok) {
         const data = await res.json();
-        if (data.fileContents?.[filename]) {
-          return data.fileContents[filename];
+        if (data.fileContents) {
+          const key = this.filenameToKey(filename);
+          if (data.fileContents[key]) return data.fileContents[key];
+          if (data.fileContents[filename]) return data.fileContents[filename];
         }
       }
     } catch {
@@ -73,6 +97,19 @@ export class RegistryClient {
     }
 
     return this.readFile(name, filename);
+  }
+
+  /** Map API file keys to actual filenames */
+  private keyToFilename(key: string): string {
+    const map: Record<string, string> = {
+      soul: 'SOUL.md',
+      identity: 'IDENTITY.md',
+      agents: 'AGENTS.md',
+      heartbeat: 'HEARTBEAT.md',
+      style: 'STYLE.md',
+      readme: 'README.md',
+    };
+    return map[key] || key;
   }
 
   /** Soul 파일 목록 (clawsoul.json의 files 필드 기반) */
@@ -83,7 +120,9 @@ export class RegistryClient {
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents) {
-          return Object.keys(data.fileContents);
+          // Store mapped fileContents for downloadFile to use
+          this._apiCache.set(name, data.fileContents);
+          return Object.keys(data.fileContents).map(k => this.keyToFilename(k));
         }
       }
     } catch {

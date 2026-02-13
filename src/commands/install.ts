@@ -49,6 +49,27 @@ export async function installCommand(nameWithVersion: string, options: { force?:
       writeFileSync(filePath, content, 'utf-8');
     }
 
+    // Ensure clawsoul.json exists (needed for isInstalled check)
+    if (!files.has('clawsoul.json')) {
+      const manifest = {
+        name: meta.name || name,
+        displayName: meta.displayName || name,
+        version: meta.version || '1.0.0',
+        description: meta.description || '',
+        category: meta.category || '',
+        tags: meta.tags || [],
+        files: Object.fromEntries(
+          [...files.keys()]
+            .filter(f => f.endsWith('.md'))
+            .map(f => {
+              const key = f.replace('.md', '').toLowerCase();
+              return [key, f];
+            })
+        ),
+      };
+      writeFileSync(join(soulDir, 'clawsoul.json'), JSON.stringify(manifest, null, 2), 'utf-8');
+    }
+
     spinner.succeed(
       `Installed ${chalk.green(meta.displayName || name)} v${meta.version || '?'}\n` +
       `  ${chalk.dim(meta.description || '')}\n` +
