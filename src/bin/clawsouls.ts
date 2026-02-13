@@ -8,6 +8,7 @@ import { restoreCommand } from '../commands/restore.js';
 import { listCommand } from '../commands/list.js';
 import { publishCommand, loginCommand } from '../commands/publish.js';
 import { initCommand } from '../commands/init.js';
+import { validateCommand } from '../commands/validate.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -55,5 +56,11 @@ program
   .command('init [name]')
   .description('Scaffold a new soul directory')
   .action((name?: string) => initCommand(name));
+
+program
+  .command('validate [dir]')
+  .alias('check')
+  .description('Validate a soul package against the spec')
+  .action((dir?: string) => validateCommand(dir));
 
 program.parse();

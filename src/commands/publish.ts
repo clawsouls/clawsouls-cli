@@ -1,5 +1,6 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, basename } from 'path';
+import { ClawSoulSchema } from '../utils/validate.js';
 
 const API_BASE = 'https://clawsouls.ai/api/v1';
 
@@ -45,8 +46,13 @@ export async function publishCommand(dir: string): Promise<void> {
     process.exit(1);
   }
 
-  if (!manifest.name) {
-    console.error('Error: clawsoul.json must have a "name" field');
+  // Validate against spec
+  const validation = ClawSoulSchema.safeParse(manifest);
+  if (!validation.success) {
+    console.error('Error: clawsoul.json validation failed:');
+    for (const issue of validation.error.issues) {
+      console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
+    }
     process.exit(1);
   }
 
