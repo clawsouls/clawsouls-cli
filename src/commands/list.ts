@@ -7,7 +7,7 @@ export async function listCommand(): Promise<void> {
 
   if (souls.length === 0) {
     console.log(chalk.dim('No souls installed.'));
-    console.log(`  Run ${chalk.cyan('clawsouls install <name>')} to get started.`);
+    console.log(`  Run ${chalk.cyan('clawsouls install owner/name')} to get started.`);
     return;
   }
 
@@ -15,7 +15,7 @@ export async function listCommand(): Promise<void> {
 
   for (const soul of souls) {
     console.log(
-      `  ${chalk.green(soul.displayName)} ${chalk.dim(`v${soul.version}`)}` +
+      `  ${chalk.green(soul.displayName)} ${chalk.dim(`(${soul.name})`)} ${chalk.dim(`v${soul.version}`)}` +
       `  ${chalk.yellow(soul.category)}`
     );
     if (soul.description) {

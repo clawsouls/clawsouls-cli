@@ -4,6 +4,8 @@ import { getConfig } from '../utils/config.js';
 
 export interface SoulMeta {
   name: string;
+  owner?: string;
+  fullName?: string;
   displayName: string;
   version: string;
   description: string;
@@ -11,12 +13,6 @@ export interface SoulMeta {
   tags: string[];
 }
 
-/**
- * Registry client with API + CDN fallback.
- * 1. Try API (clawsouls.ai/api/v1/souls/:name)
- * 2. Fall back to GitHub raw CDN
- * 3. Fall back to local path (CLAWSOULS_CDN env)
- */
 export class RegistryClient {
   private cdn: string;
   private api: string;
@@ -30,19 +26,22 @@ export class RegistryClient {
     this.isLocal = !this.cdn.startsWith('http');
   }
 
-  /** Soul의 clawsoul.json 가져오기 */
-  async getSoulMeta(name: string): Promise<SoulMeta> {
-    // Try API first
+  private soulApiPath(name: string, owner?: string): string {
+    return owner ? `${this.api}/souls/${owner}/${name}` : `${this.api}/souls/${name}`;
+  }
+
+  async getSoulMeta(name: string, owner?: string): Promise<SoulMeta> {
     try {
-      const res = await fetch(`${this.api}/souls/${name}?files=true`);
+      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true`);
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents?.['clawsoul.json']) {
           return JSON.parse(data.fileContents['clawsoul.json']);
         }
-        // Build meta from API response
         return {
           name: data.name,
+          owner: data.owner,
+          fullName: data.fullName,
           displayName: data.displayName || data.name,
           version: data.version || '1.0.0',
           description: data.description || '',
@@ -50,15 +49,12 @@ export class RegistryClient {
           tags: data.tags || [],
         };
       }
-    } catch {
-      // Fall through to CDN
-    }
+    } catch {}
 
     const content = await this.readFile(name, 'clawsoul.json');
     return JSON.parse(content);
   }
 
-  /** Reverse map filename to API key */
   private filenameToKey(filename: string): string {
     const map: Record<string, string> = {
       'SOUL.md': 'soul',
@@ -71,19 +67,17 @@ export class RegistryClient {
     return map[filename] || filename;
   }
 
-  /** Soul 파일 다운로드 — tries API cache/fetch first */
-  async downloadFile(name: string, filename: string): Promise<string> {
-    // Check cache first (populated by getSoulFiles)
-    const cached = this._apiCache.get(name);
+  async downloadFile(name: string, filename: string, owner?: string): Promise<string> {
+    const cacheKey = owner ? `${owner}/${name}` : name;
+    const cached = this._apiCache.get(cacheKey);
     if (cached) {
       const key = this.filenameToKey(filename);
       if (cached[key]) return cached[key];
       if (cached[filename]) return cached[filename];
     }
 
-    // Try API
     try {
-      const res = await fetch(`${this.api}/souls/${name}?files=true`);
+      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true`);
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents) {
@@ -92,14 +86,11 @@ export class RegistryClient {
           if (data.fileContents[filename]) return data.fileContents[filename];
         }
       }
-    } catch {
-      // Fall through to CDN
-    }
+    } catch {}
 
     return this.readFile(name, filename);
   }
 
-  /** Map API file keys to actual filenames */
   private keyToFilename(key: string): string {
     const map: Record<string, string> = {
       soul: 'SOUL.md',
@@ -112,24 +103,20 @@ export class RegistryClient {
     return map[key] || key;
   }
 
-  /** Soul 파일 목록 (clawsoul.json의 files 필드 기반) */
-  async getSoulFiles(name: string): Promise<string[]> {
-    // Try API first for file list
+  async getSoulFiles(name: string, owner?: string): Promise<string[]> {
     try {
-      const res = await fetch(`${this.api}/souls/${name}?files=true`);
+      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true`);
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents) {
-          // Store mapped fileContents for downloadFile to use
-          this._apiCache.set(name, data.fileContents);
+          const cacheKey = owner ? `${owner}/${name}` : name;
+          this._apiCache.set(cacheKey, data.fileContents);
           return Object.keys(data.fileContents).map(k => this.keyToFilename(k));
         }
       }
-    } catch {
-      // Fall through
-    }
+    } catch {}
 
-    const meta = await this.getSoulMeta(name);
+    const meta = await this.getSoulMeta(name, owner);
     const files = ['clawsoul.json', 'README.md'];
     const fileMap = (meta as any).files || {};
     for (const path of Object.values(fileMap)) {

@@ -30,7 +30,7 @@ export class StorageManager {
     this.backupDir = join(this.soulsDir, '_backup');
   }
 
-  /** List all installed souls */
+  /** List all installed souls (supports owner/name directories) */
   listInstalled(): InstalledSoul[] {
     ensureDir(this.soulsDir);
     const entries = readdirSync(this.soulsDir, { withFileTypes: true });
@@ -38,33 +38,59 @@ export class StorageManager {
 
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
-      const manifestPath = join(this.soulsDir, entry.name, 'clawsoul.json');
-      if (!existsSync(manifestPath)) continue;
 
-      try {
-        const data = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-        souls.push({
-          name: data.name || entry.name,
-          displayName: data.displayName || data.name || entry.name,
-          version: data.version || '0.0.0',
-          description: data.description || '',
-          category: data.category || 'general',
-          path: join(this.soulsDir, entry.name),
-        });
-      } catch {
-        // Skip invalid manifests
+      // Check if this is an owner directory (contains subdirs with clawsoul.json)
+      const ownerDir = join(this.soulsDir, entry.name);
+      const subEntries = readdirSync(ownerDir, { withFileTypes: true });
+      let foundSub = false;
+
+      for (const sub of subEntries) {
+        if (!sub.isDirectory()) continue;
+        const manifestPath = join(ownerDir, sub.name, 'clawsoul.json');
+        if (existsSync(manifestPath)) {
+          foundSub = true;
+          try {
+            const data = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+            souls.push({
+              name: `${entry.name}/${sub.name}`,
+              displayName: data.displayName || data.name || sub.name,
+              version: data.version || '0.0.0',
+              description: data.description || '',
+              category: data.category || 'general',
+              path: join(ownerDir, sub.name),
+            });
+          } catch {}
+        }
+      }
+
+      // Legacy: direct soul directory (no owner)
+      if (!foundSub) {
+        const manifestPath = join(this.soulsDir, entry.name, 'clawsoul.json');
+        if (existsSync(manifestPath)) {
+          try {
+            const data = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+            souls.push({
+              name: data.name || entry.name,
+              displayName: data.displayName || data.name || entry.name,
+              version: data.version || '0.0.0',
+              description: data.description || '',
+              category: data.category || 'general',
+              path: join(this.soulsDir, entry.name),
+            });
+          } catch {}
+        }
       }
     }
 
     return souls;
   }
 
-  /** Check if a soul is installed */
+  /** Check if a soul is installed (supports owner/name) */
   isInstalled(name: string): boolean {
     return existsSync(join(this.soulsDir, name, 'clawsoul.json'));
   }
 
-  /** Get soul install directory */
+  /** Get soul install directory (supports owner/name) */
   getSoulDir(name: string): string {
     return join(this.soulsDir, name);
   }
