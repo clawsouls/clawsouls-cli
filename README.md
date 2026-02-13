@@ -37,6 +37,16 @@ npm install -g clawsouls
 
 ## Commands
 
+### `clawsouls init [name]`
+
+Scaffold a new soul package directory with template files.
+
+```bash
+clawsouls init my-soul
+```
+
+Creates a directory with `clawsoul.json`, `SOUL.md`, `IDENTITY.md`, `AGENTS.md`, `HEARTBEAT.md`, and `README.md` — ready for customization and publishing.
+
 ### `clawsouls install <name>`
 
 Download and install a soul from the registry.
