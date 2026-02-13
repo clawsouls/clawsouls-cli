@@ -72,6 +72,29 @@ clawsouls restore
 
 Multiple backups are kept — each `use` creates a new timestamped backup, so you can safely switch between souls without losing any previous configuration.
 
+### `clawsouls publish <dir>`
+
+Publish a soul package to the ClawSouls registry. Requires authentication.
+
+```bash
+# 1. Log in at https://clawsouls.ai and get your API token from the Dashboard
+# 2. Set the token
+export CLAWSOULS_TOKEN=<your-token>
+
+# 3. Publish your soul
+clawsouls publish ./my-soul/
+```
+
+The directory must contain a valid `clawsoul.json`. All files in the directory are uploaded. A security scan runs automatically before publishing.
+
+### `clawsouls login`
+
+Show instructions for authenticating with the registry.
+
+```bash
+clawsouls login
+```
+
 ### `clawsouls list`
 
 Show all installed souls.
