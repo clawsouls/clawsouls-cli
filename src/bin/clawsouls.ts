@@ -6,6 +6,7 @@ import { installCommand } from '../commands/install.js';
 import { useCommand } from '../commands/use.js';
 import { restoreCommand } from '../commands/restore.js';
 import { listCommand } from '../commands/list.js';
+import { publishCommand, loginCommand } from '../commands/publish.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -38,5 +39,15 @@ program
   .alias('ls')
   .description('List installed souls')
   .action(listCommand);
+
+program
+  .command('publish <dir>')
+  .description('Publish a soul package to the registry')
+  .action(publishCommand);
+
+program
+  .command('login')
+  .description('Get instructions for authenticating with the registry')
+  .action(loginCommand);
 
 program.parse();
