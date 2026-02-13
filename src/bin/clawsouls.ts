@@ -7,6 +7,7 @@ import { useCommand } from '../commands/use.js';
 import { restoreCommand } from '../commands/restore.js';
 import { listCommand } from '../commands/list.js';
 import { publishCommand, loginCommand } from '../commands/publish.js';
+import { initCommand } from '../commands/init.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -49,5 +50,10 @@ program
   .command('login')
   .description('Get instructions for authenticating with the registry')
   .action(loginCommand);
+
+program
+  .command('init [name]')
+  .description('Scaffold a new soul directory')
+  .action((name?: string) => initCommand(name));
 
 program.parse();
