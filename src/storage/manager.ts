@@ -1,10 +1,10 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync, copyFileSync, mkdirSync, cpSync } from 'fs';
 import { join, basename } from 'path';
 import { getConfig, ensureDir } from '../utils/config.js';
 import { validateClawSoul, type ClawSoul } from '../utils/validate.js';
 
 /** Files that get copied to workspace on `use` */
-const SOUL_FILES = ['SOUL.md', 'IDENTITY.md', 'AGENTS.md', 'HEARTBEAT.md'];
+const SOUL_FILES = ['SOUL.md', 'IDENTITY.md', 'AGENTS.md', 'HEARTBEAT.md', 'STYLE.md'];
 
 /** Files that are NEVER overwritten (personal data) */
 const PROTECTED_FILES = ['USER.md', 'MEMORY.md', 'TOOLS.md'];
@@ -95,6 +95,12 @@ export class StorageManager {
       }
     }
 
+    // Backup examples/ directory if it exists
+    const examplesDir = join(this.workspace, 'examples');
+    if (existsSync(examplesDir)) {
+      cpSync(examplesDir, join(backupPath, 'examples'), { recursive: true });
+    }
+
     return backupPath;
   }
 
@@ -122,6 +128,21 @@ export class StorageManager {
 
       copyFileSync(src, join(this.workspace, targetName));
     }
+
+    // Copy examples/ directory if defined in manifest
+    const examples: Record<string, string> | undefined = manifest.examples;
+    if (examples) {
+      const examplesTarget = join(this.workspace, 'examples');
+      ensureDir(examplesTarget);
+      for (const [, filename] of Object.entries(examples)) {
+        if (typeof filename !== 'string') continue;
+        const src = join(soulDir, filename);
+        if (!existsSync(src)) continue;
+        const dest = join(this.workspace, filename);
+        ensureDir(join(dest, '..'));
+        copyFileSync(src, dest);
+      }
+    }
   }
 
   /** Restore workspace from latest backup */
@@ -137,10 +158,16 @@ export class StorageManager {
     if (backups.length === 0) return null;
 
     const latest = join(this.backupDir, backups[0]);
-    const files = readdirSync(latest);
+    const entries = readdirSync(latest, { withFileTypes: true });
 
-    for (const file of files) {
-      copyFileSync(join(latest, file), join(this.workspace, file));
+    for (const entry of entries) {
+      const src = join(latest, entry.name);
+      const dest = join(this.workspace, entry.name);
+      if (entry.isDirectory()) {
+        cpSync(src, dest, { recursive: true });
+      } else {
+        copyFileSync(src, dest);
+      }
     }
 
     return backups[0];
@@ -162,6 +189,7 @@ export class StorageManager {
       identity: 'IDENTITY.md',
       agents: 'AGENTS.md',
       heartbeat: 'HEARTBEAT.md',
+      style: 'STYLE.md',
     };
     return map[key] || null;
   }

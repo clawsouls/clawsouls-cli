@@ -21,9 +21,16 @@ export const ClawSoulSchema = z.object({
     identity: z.string().optional(),
     agents: z.string().optional(),
     heartbeat: z.string().optional(),
+    style: z.string().optional(),
     userTemplate: z.string().optional(),
     avatar: z.string().optional(),
   }),
+  examples: z.object({
+    good: z.string().optional(),
+    bad: z.string().optional(),
+  }).optional(),
+  modes: z.array(z.string()).optional(),
+  interpolation: z.enum(['bold', 'cautious', 'strict']).optional(),
   skills: z.array(z.string()).optional(),
   repository: z.string().url().optional(),
 });
