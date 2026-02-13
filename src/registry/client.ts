@@ -12,32 +12,84 @@ export interface SoulMeta {
 }
 
 /**
- * MVP: GitHub raw URL 기반 레지스트리 + 로컬 경로 지원
- * Phase 4 이후: API 서버로 전환
+ * Registry client with API + CDN fallback.
+ * 1. Try API (clawsouls.ai/api/v1/souls/:name)
+ * 2. Fall back to GitHub raw CDN
+ * 3. Fall back to local path (CLAWSOULS_CDN env)
  */
 export class RegistryClient {
   private cdn: string;
+  private api: string;
   private isLocal: boolean;
 
   constructor() {
     const config = getConfig();
     this.cdn = config.cdn;
+    this.api = 'https://clawsouls.ai/api/v1';
     this.isLocal = !this.cdn.startsWith('http');
   }
 
   /** Soul의 clawsoul.json 가져오기 */
   async getSoulMeta(name: string): Promise<SoulMeta> {
+    // Try API first
+    try {
+      const res = await fetch(`${this.api}/souls/${name}?files=true`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.fileContents?.['clawsoul.json']) {
+          return JSON.parse(data.fileContents['clawsoul.json']);
+        }
+        // Build meta from API response
+        return {
+          name: data.name,
+          displayName: data.displayName || data.name,
+          version: data.version || '1.0.0',
+          description: data.description || '',
+          category: data.category || '',
+          tags: data.tags || [],
+        };
+      }
+    } catch {
+      // Fall through to CDN
+    }
+
     const content = await this.readFile(name, 'clawsoul.json');
     return JSON.parse(content);
   }
 
-  /** Soul 파일 다운로드 */
+  /** Soul 파일 다운로드 — tries API fileContents first */
   async downloadFile(name: string, filename: string): Promise<string> {
+    // Try API first
+    try {
+      const res = await fetch(`${this.api}/souls/${name}?files=true`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.fileContents?.[filename]) {
+          return data.fileContents[filename];
+        }
+      }
+    } catch {
+      // Fall through to CDN
+    }
+
     return this.readFile(name, filename);
   }
 
   /** Soul 파일 목록 (clawsoul.json의 files 필드 기반) */
   async getSoulFiles(name: string): Promise<string[]> {
+    // Try API first for file list
+    try {
+      const res = await fetch(`${this.api}/souls/${name}?files=true`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.fileContents) {
+          return Object.keys(data.fileContents);
+        }
+      }
+    } catch {
+      // Fall through
+    }
+
     const meta = await this.getSoulMeta(name);
     const files = ['clawsoul.json', 'README.md'];
     const fileMap = (meta as any).files || {};
