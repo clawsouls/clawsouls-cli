@@ -1,4 +1,4 @@
-# 🧠 ClawSouls CLI
+# 🧠 ClawSouls CLI v0.2.0
 
 **Give your AI a soul.** Install, manage, and switch AI agent personas for [OpenClaw](https://github.com/openclaw/openclaw).
 
@@ -14,8 +14,8 @@ Browse available souls at [clawsouls.ai](https://clawsouls.ai).
 ## Quick Start
 
 ```bash
-# Install a soul
-npx clawsouls install brad
+# Install a soul (owner/name format)
+npx clawsouls install clawsouls/brad
 
 # Activate it (backs up your current workspace)
 npx clawsouls use brad
@@ -47,14 +47,16 @@ clawsouls init my-soul
 
 Creates a directory with `clawsoul.json`, `SOUL.md`, `IDENTITY.md`, `AGENTS.md`, `HEARTBEAT.md`, and `README.md` — ready for customization and publishing.
 
-### `clawsouls install <name>`
+### `clawsouls install <owner/name>`
 
-Download and install a soul from the registry.
+Download and install a soul from the registry. Uses `owner/name` format (e.g., `clawsouls/brad`).
+
+The install command tries the API first (`/api/v1/souls/:owner/:name?files=true`), falls back to CDN if unavailable, and auto-generates `clawsoul.json` if missing from the response.
 
 ```bash
-clawsouls install minimalist
-clawsouls install devops-veteran
-clawsouls install brad --force  # overwrite existing
+clawsouls install clawsouls/minimalist
+clawsouls install clawsouls/devops-veteran
+clawsouls install clawsouls/brad --force  # overwrite existing
 ```
 
 ### `clawsouls use <name>`
@@ -95,7 +97,9 @@ export CLAWSOULS_TOKEN=<your-token>
 clawsouls publish ./my-soul/
 ```
 
-The directory must contain a valid `clawsoul.json`. All files in the directory are uploaded. A security scan runs automatically before publishing.
+The directory must contain a valid `clawsoul.json`. All files in the directory are uploaded. A security scan runs automatically before publishing (blocks on dangerous patterns with 400 error).
+
+**v0.2.0**: The `publish` command auto-prefixes the soul name with your username (e.g., publishing `my-soul` as user `TomLeeLive` creates `TomLeeLive/my-soul`).
 
 ### `clawsouls login`
 
