@@ -16,7 +16,7 @@ export async function restoreCommand(): Promise<void> {
 
     spinner.succeed(
       `Restored from backup ${chalk.dim(restored)}\n` +
-      `  ${chalk.yellow('⚠')}  Run `openclaw gateway restart` to apply the new persona.`
+      `  ${chalk.yellow('⚠')}  Run ${chalk.cyan('openclaw gateway restart')} to apply the new persona.`
     );
   } catch (err: any) {
     spinner.fail(err.message);

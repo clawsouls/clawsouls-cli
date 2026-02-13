@@ -27,7 +27,7 @@ export async function useCommand(name: string): Promise<void> {
     spinner.succeed(
       `Switched to ${chalk.green(name)}\n` +
       `  ${chalk.dim('Backup saved. Use')} ${chalk.cyan('clawsouls restore')} ${chalk.dim('to revert.')}\n` +
-      `  ${chalk.yellow('⚠')}  Run `openclaw gateway restart` to apply the new persona.`
+      `  ${chalk.yellow('⚠')}  Run ${chalk.cyan('openclaw gateway restart')} to apply the new persona.`
     );
   } catch (err: any) {
     spinner.fail(err.message);
