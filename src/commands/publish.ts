@@ -20,7 +20,7 @@ async function getUsername(token: string): Promise<string> {
   });
   if (!res.ok) throw new Error('Failed to get user info. Is your token valid?');
   const data = await res.json();
-  return data.username || data.name;
+  return data.user?.username || data.username || data.user?.name || data.name;
 }
 
 export async function publishCommand(dir: string): Promise<void> {
