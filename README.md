@@ -1,4 +1,4 @@
-# 🧠 ClawSouls CLI v0.2.0
+# 🧠 ClawSouls CLI v0.2.5
 
 **Give your AI a soul.** Install, manage, and switch AI agent personas for [OpenClaw](https://github.com/openclaw/openclaw).
 
@@ -47,16 +47,17 @@ clawsouls init my-soul
 
 Creates a directory with `clawsoul.json`, `SOUL.md`, `IDENTITY.md`, `AGENTS.md`, `HEARTBEAT.md`, and `README.md` — ready for customization and publishing.
 
-### `clawsouls install <owner/name>`
+### `clawsouls install <owner/name[@version]>`
 
-Download and install a soul from the registry. Uses `owner/name` format (e.g., `clawsouls/brad`).
+Download and install a soul from the registry. Uses `owner/name` format (e.g., `clawsouls/brad`). Optionally specify a version with `@version` (e.g., `clawsouls/brad@0.1.0`). Without a version, installs the latest.
 
 The install command tries the API first (`/api/v1/souls/:owner/:name?files=true`), falls back to CDN if unavailable, and auto-generates `clawsoul.json` if missing from the response.
 
 ```bash
 clawsouls install clawsouls/minimalist
 clawsouls install clawsouls/devops-veteran
-clawsouls install clawsouls/brad --force  # overwrite existing
+clawsouls install clawsouls/brad --force     # overwrite existing
+clawsouls install clawsouls/brad@0.1.0       # specific version
 ```
 
 ### `clawsouls use <name>`
