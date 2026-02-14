@@ -1,34 +1,52 @@
 import chalk from 'chalk';
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { getSchema, LATEST_SPEC, SPEC_VERSIONS } from '../utils/validate.js';
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+interface CheckResult {
+  type: 'pass' | 'fail' | 'warn';
+  message: string;
+  details?: string[];
+}
 
 export async function validateCommand(dir?: string, options?: { spec?: string }): Promise<void> {
   const soulDir = dir || '.';
   const manifestPath = join(soulDir, 'clawsoul.json');
   const specVersion = options?.spec || LATEST_SPEC;
 
-  console.log(chalk.bold(`Validating soul in ${soulDir}/`) + chalk.dim(` (spec v${specVersion})\n`));
+  const results: CheckResult[] = [];
+  const add = (type: CheckResult['type'], message: string, details?: string[]) => {
+    results.push({ type, message, details });
+  };
 
-  let hasError = false;
-  const pass = (msg: string) => console.log(chalk.green('  ✓ ') + msg);
-  const fail = (msg: string) => { console.log(chalk.red('  ✗ ') + msg); hasError = true; };
-  const warn = (msg: string) => console.log(chalk.yellow('  ⚠ ') + msg);
+  console.log(chalk.bold(`\nValidating ${soulDir}/...`) + chalk.dim(` (spec v${specVersion})\n`));
 
   // 1. Check clawsoul.json exists
   if (!existsSync(manifestPath)) {
-    fail('clawsoul.json not found');
+    add('fail', 'clawsoul.json missing');
+    printResults(results);
     process.exit(1);
   }
-  pass('clawsoul.json exists');
+  add('pass', 'clawsoul.json found');
 
   // 2. Parse JSON
   let raw: any;
   try {
     raw = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-    pass('clawsoul.json is valid JSON');
   } catch (err: any) {
-    fail(`clawsoul.json parse error: ${err.message}`);
+    const msg = err.message || 'unknown parse error';
+    // Try to extract line/position info
+    const posMatch = msg.match(/position (\d+)/);
+    const detail = posMatch
+      ? `Parse error at byte ${posMatch[1]}: ${msg}`
+      : `Parse error: ${msg}`;
+    add('fail', 'clawsoul.json is not valid JSON', [detail]);
+    printResults(results);
     process.exit(1);
   }
 
@@ -37,111 +55,211 @@ export async function validateCommand(dir?: string, options?: { spec?: string })
   try {
     schema = getSchema(specVersion);
   } catch (err: any) {
-    fail(err.message);
     const available = Object.keys(SPEC_VERSIONS).join(', ');
-    console.log(chalk.dim(`  Available versions: ${available}`));
+    add('fail', err.message, [`Available versions: ${available}`]);
+    printResults(results);
     process.exit(1);
   }
 
-  const result = schema.safeParse(raw);
-  if (result.success) {
-    pass(`Schema validation passed (spec v${specVersion})`);
+  const parsed = schema.safeParse(raw);
+  if (parsed.success) {
+    add('pass', `clawsoul.json schema valid (spec v${specVersion})`);
   } else {
-    for (const issue of (result as any).error.issues) {
-      fail(`${issue.path.join('.')}: ${issue.message}`);
+    const details: string[] = [];
+    for (const issue of (parsed as any).error.issues) {
+      const path = issue.path.length > 0 ? `"${issue.path.join('.')}"` : '(root)';
+      let expected = '';
+      if (issue.code === 'invalid_type') {
+        expected = ` (expected: ${issue.expected}, got: ${issue.received})`;
+      } else if (issue.code === 'invalid_string' && issue.validation) {
+        expected = ` (expected: ${issue.validation})`;
+      } else if (issue.code === 'invalid_enum_value' && issue.options) {
+        expected = ` (expected one of: ${issue.options.join(', ')})`;
+      } else if (issue.code === 'too_big') {
+        expected = ` (max: ${issue.maximum})`;
+      } else if (issue.code === 'too_small') {
+        expected = ` (min: ${issue.minimum})`;
+      }
+
+      // Friendly hints for common required fields
+      let hint = '';
+      const fieldPath = issue.path.join('.');
+      const hints: Record<string, string> = {
+        'author': 'object with "name" field',
+        'license': 'string, e.g. "Apache-2.0"',
+        'name': 'kebab-case string, e.g. "my-soul"',
+        'displayName': 'human-readable name string',
+        'version': 'semver string, e.g. "1.0.0"',
+        'description': 'string, max 160 chars',
+        'tags': 'array of strings, max 10',
+        'category': 'string',
+        'files': 'object with "soul" field',
+        'files.soul': 'path to SOUL.md',
+      };
+
+      if (issue.code === 'invalid_type' && issue.received === 'undefined') {
+        const friendlyExpected = hints[fieldPath] || issue.expected;
+        details.push(`${path} is required (expected: ${friendlyExpected})`);
+      } else if (issue.code === 'invalid_string') {
+        const actual = raw;
+        const val = issue.path.reduce((o: any, k: string | number) => o?.[k], raw);
+        const valStr = val !== undefined ? ` (got: ${JSON.stringify(val)})` : '';
+        details.push(`${path}: ${issue.message}${valStr}`);
+      } else {
+        const friendlyHint = hints[fieldPath] ? ` (expected: ${hints[fieldPath]})` : expected;
+        details.push(`${path}: ${issue.message}${friendlyHint}`);
+      }
     }
+    add('fail', 'clawsoul.json schema', details);
   }
 
-  // 4. Check required files exist
+  // 4. Check required files
   const files = raw.files || {};
   const requiredFiles: [string, string][] = [
     ['soul', 'SOUL.md'],
   ];
-  const optionalFiles: [string, string][] = [
-    ['identity', 'IDENTITY.md'],
-    ['agents', 'AGENTS.md'],
-    ['heartbeat', 'HEARTBEAT.md'],
-    ['style', 'STYLE.md'],
+  const optionalFiles: [string, string, string][] = [
+    ['identity', 'IDENTITY.md', 'recommended for personality definition'],
+    ['agents', 'AGENTS.md', 'recommended for agent workflows'],
+    ['heartbeat', 'HEARTBEAT.md', 'optional'],
+    ['style', 'STYLE.md', 'optional but recommended'],
   ];
 
   for (const [key, defaultName] of requiredFiles) {
     const filename = files[key] || defaultName;
-    if (existsSync(join(soulDir, filename))) {
-      pass(`${filename} exists`);
+    const filePath = join(soulDir, filename);
+    if (existsSync(filePath)) {
+      const size = statSync(filePath).size;
+      add('pass', `${filename} found (${formatBytes(size)})`);
     } else {
-      fail(`${filename} missing (required)`);
+      add('fail', `${filename} missing`);
     }
   }
 
-  for (const [key, defaultName] of optionalFiles) {
+  for (const [key, defaultName, hint] of optionalFiles) {
     const filename = files[key] || defaultName;
-    if (existsSync(join(soulDir, filename))) {
-      pass(`${filename} exists`);
+    const filePath = join(soulDir, filename);
+    if (existsSync(filePath)) {
+      const size = statSync(filePath).size;
+      add('pass', `${filename} found (${formatBytes(size)})`);
     } else {
-      warn(`${filename} not found (optional)`);
+      add('warn', `${filename} missing (${hint})`);
     }
   }
 
-  // 5. Check README.md
-  if (existsSync(join(soulDir, 'README.md'))) {
-    pass('README.md exists');
+  // 5. README.md
+  const readmePath = join(soulDir, 'README.md');
+  if (existsSync(readmePath)) {
+    const size = statSync(readmePath).size;
+    add('pass', `README.md found (${formatBytes(size)})`);
   } else {
-    warn('README.md not found (recommended)');
+    add('warn', 'README.md missing (recommended)');
   }
 
-  // 6. Content checks
-  if (files.soul) {
-    const soulContent = readFileSync(join(soulDir, files.soul), 'utf-8');
-    if (soulContent.length < 10) {
-      warn('SOUL.md is very short (< 10 chars)');
-    } else {
-      pass(`SOUL.md has content (${soulContent.length} chars)`);
+  // 6. Content quality checks
+  const soulFile = files.soul || 'SOUL.md';
+  const soulPath = join(soulDir, soulFile);
+  if (existsSync(soulPath)) {
+    const content = readFileSync(soulPath, 'utf-8');
+    if (content.length < 10) {
+      add('warn', `${soulFile} is very short (${content.length} chars — consider expanding)`);
     }
   }
 
   // 7. Security scan
-  const allFiles = readdirSync(soulDir, { recursive: true }) as string[];
+  let allFiles: string[];
+  try {
+    allFiles = readdirSync(soulDir, { recursive: true }) as string[];
+  } catch {
+    allFiles = [];
+  }
+
   const dangerousExts = ['.exe', '.dll', '.so', '.dylib', '.sh', '.bat', '.cmd'];
   const dangerousPatterns = ['eval(', 'exec(', 'Function(', 'require(', 'import('];
+  const securityIssues: string[] = [];
 
   for (const file of allFiles) {
     const filePath = String(file);
+    // skip node_modules, .git
+    if (filePath.startsWith('node_modules') || filePath.startsWith('.git')) continue;
     const ext = filePath.substring(filePath.lastIndexOf('.'));
     if (dangerousExts.includes(ext)) {
-      fail(`Dangerous file extension: ${filePath}`);
+      securityIssues.push(`Dangerous file extension: ${filePath}`);
     }
   }
 
-  // Check text files for dangerous patterns
   for (const file of allFiles) {
-    const filePath = join(soulDir, String(file));
+    const filePath = String(file);
+    if (filePath.startsWith('node_modules') || filePath.startsWith('.git')) continue;
+    const fullPath = join(soulDir, filePath);
     try {
-      const content = readFileSync(filePath, 'utf-8');
+      const stat = statSync(fullPath);
+      if (stat.isDirectory() || stat.size > 1024 * 1024) continue; // skip dirs and large files
+      const content = readFileSync(fullPath, 'utf-8');
       for (const pattern of dangerousPatterns) {
         if (content.includes(pattern)) {
-          fail(`Dangerous pattern "${pattern}" in ${file}`);
+          // Find line number
+          const lines = content.split('\n');
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes(pattern)) {
+              securityIssues.push(`"${pattern}" found in ${filePath}:${i + 1}`);
+            }
+          }
         }
       }
     } catch {
-      // Binary file, skip
+      // Binary file or unreadable, skip
     }
   }
 
-  // 8. Field-specific warnings
-  if (raw.name) {
-    if (raw.name.length > 40) warn('Name is very long (> 40 chars)');
-  }
-  if (raw.description) {
-    if (raw.description.length < 10) warn('Description is very short');
-  }
-  if (raw.tags && raw.tags.length === 0) warn('No tags defined');
-
-  // Summary
-  console.log('');
-  if (hasError) {
-    console.log(chalk.red.bold('✗ Validation failed — fix errors above before publishing.'));
-    process.exit(1);
+  if (securityIssues.length > 0) {
+    add('fail', 'Security scan', securityIssues);
   } else {
-    console.log(chalk.green.bold('✓ Soul is valid and ready to publish!'));
+    add('pass', 'Security scan passed');
+  }
+
+  // 8. Field-specific warnings
+  if (raw.name && raw.name.length > 40) add('warn', 'Name is very long (> 40 chars)');
+  if (raw.description && raw.description.length < 10) add('warn', 'Description is very short (< 10 chars)');
+  if (raw.tags && raw.tags.length === 0) add('warn', 'No tags defined');
+
+  printResults(results);
+
+  const errors = results.filter(r => r.type === 'fail').length;
+  if (errors > 0) process.exit(1);
+}
+
+function printResults(results: CheckResult[]): void {
+  const icons = {
+    pass: chalk.green('✅'),
+    fail: chalk.red('❌'),
+    warn: chalk.yellow('⚠️'),
+  };
+
+  for (const r of results) {
+    const icon = icons[r.type];
+    const text = r.type === 'fail' ? chalk.red(r.message)
+      : r.type === 'warn' ? chalk.yellow(r.message)
+      : r.message;
+    console.log(`${icon} ${text}`);
+    if (r.details && r.details.length > 0) {
+      for (const d of r.details) {
+        const detailColor = r.type === 'fail' ? chalk.red : chalk.yellow;
+        console.log(detailColor(`   - ${d}`));
+      }
+    }
+  }
+
+  const passed = results.filter(r => r.type === 'pass').length;
+  const failed = results.filter(r => r.type === 'fail').length;
+  const warnings = results.filter(r => r.type === 'warn').length;
+
+  console.log('');
+  if (failed > 0) {
+    console.log(chalk.red.bold(`Result: ${failed} error${failed !== 1 ? 's' : ''}, ${warnings} warning${warnings !== 1 ? 's' : ''} — fix errors before publishing`));
+  } else if (warnings > 0) {
+    console.log(chalk.green.bold(`✓ Valid!`) + chalk.dim(` ${passed} passed, ${warnings} warning${warnings !== 1 ? 's' : ''}`));
+  } else {
+    console.log(chalk.green.bold(`✓ Soul is valid and ready to publish!`) + chalk.dim(` (${passed} checks passed)`));
   }
 }
