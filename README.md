@@ -120,20 +120,22 @@ clawsouls list
 
 ## Available Souls
 
+**78+ souls** across 10 categories — browse all at [clawsouls.ai](https://clawsouls.ai).
+
+Popular picks:
+
 | Soul | Category | Description |
 |------|----------|-------------|
 | 🅱️ **Brad** | Engineering | Formal, project-focused development partner |
+| 🔬 **Surgical Coder** | Engineering | Disciplined coding agent inspired by Karpathy's CLAUDE.md |
 | 🔧 **DevOps Veteran** | DevOps | Battle-scarred infrastructure engineer |
 | 🎮 **GameDev Mentor** | Game Dev | Experienced game developer and mentor |
 | ⚡ **Minimalist** | Lifestyle | Extremely concise responses |
 | 🔍 **Code Reviewer** | Engineering | Thorough, constructive code reviewer |
 | 📚 **Coding Tutor** | Education | Patient programming teacher |
-| 📋 **Personal Assistant** | Lifestyle | Proactive daily life assistant |
-| 📝 **Tech Writer** | Writing | Clear technical documentation writer |
-| 📊 **Data Analyst** | Data | Insight-driven data analyst |
-| ✍️ **Storyteller** | Creative | Narrative crafter and worldbuilder |
-
-Browse all at [clawsouls.ai](https://clawsouls.ai).
+| 🧬 **MBTI Personas** | Lifestyle | 16 personality types (INTJ, ENFP, etc.) |
+| 🔬 **Research Scientist** | Science | Rigorous research methodology and analysis |
+| 📊 **Data Scientist** | Data | ML/AI-focused data analysis |
 
 ## What's in a Soul?
 
@@ -154,24 +156,26 @@ The spec is open — see [Soul Spec](https://github.com/clawsouls/clawsouls/blob
 ## How It Works
 
 ```
-┌─────────────┐     install     ┌──────────────┐
-│  Registry    │ ──────────────→│ ~/.openclaw/  │
-│  (GitHub)    │                │   souls/brad/ │
-└─────────────┘                └──────┬───────┘
-                                      │ use
-                                      ▼
-                               ┌──────────────┐
-                               │ ~/.openclaw/  │
-                               │  workspace/   │
-                               │  ├ SOUL.md    │
-                               │  ├ IDENTITY.md│
-                               │  └ AGENTS.md  │
-                               └──────────────┘
+┌──────────────────┐   install    ┌──────────────┐
+│  clawsouls.ai    │ ───────────→ │ ~/.openclaw/  │
+│  (API Registry)  │  GET /api/   │   souls/brad/ │
+└──────────────────┘  v1/souls/   └──────┬───────┘
+        ▲              owner/name        │ use
+        │                                ▼
+   publish (POST)              ┌──────────────────┐
+        │                      │ ~/.openclaw/      │
+┌───────┴──────┐               │  workspace/       │
+│ clawsouls    │               │  ├ SOUL.md        │
+│ publish ./   │               │  ├ IDENTITY.md    │
+└──────────────┘               │  ├ AGENTS.md      │
+                               │  └ HEARTBEAT.md   │
+                               └──────────────────┘
 ```
 
-1. **Install** downloads soul files to `~/.openclaw/souls/<name>/`
-2. **Use** backs up your workspace, then copies soul files in
+1. **Install** fetches soul files from the API (`clawsouls.ai/api/v1/souls/:owner/:name`) and saves to `~/.openclaw/souls/<name>/`
+2. **Use** backs up your current workspace to `~/.openclaw/souls/_backup/<timestamp>/`, then copies soul files in
 3. **Restart** your OpenClaw session to load the new personality
+4. **Publish** uploads your soul directory to the registry (requires `CLAWSOULS_TOKEN`)
 
 ## Links
 
