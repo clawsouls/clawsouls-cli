@@ -50,7 +50,12 @@ export class RegistryClient {
           tags: data.tags || [],
         };
       }
-    } catch {}
+      if (version && res.status === 404) {
+        throw new Error(`Version "${version}" not found for soul "${owner ? `${owner}/` : ''}${name}"`);
+      }
+    } catch (err: any) {
+      if (err.message?.includes('not found')) throw err;
+    }
 
     const content = await this.readFile(name, 'clawsoul.json');
     return JSON.parse(content);
@@ -109,6 +114,9 @@ export class RegistryClient {
     try {
       const vq = version ? `&version=${version}` : '';
       const res = await fetch(`${this.soulApiPath(name, owner)}?files=true${vq}`);
+      if (version && res.status === 404) {
+        throw new Error(`Version "${version}" not found for soul "${owner ? `${owner}/` : ''}${name}"`);
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents) {
