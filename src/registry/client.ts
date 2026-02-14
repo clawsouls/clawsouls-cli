@@ -30,9 +30,10 @@ export class RegistryClient {
     return owner ? `${this.api}/souls/${owner}/${name}` : `${this.api}/souls/${name}`;
   }
 
-  async getSoulMeta(name: string, owner?: string): Promise<SoulMeta> {
+  async getSoulMeta(name: string, owner?: string, version?: string): Promise<SoulMeta> {
     try {
-      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true`);
+      const vq = version ? `&version=${version}` : '';
+      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true${vq}`);
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents?.['clawsoul.json']) {
@@ -67,7 +68,7 @@ export class RegistryClient {
     return map[filename] || filename;
   }
 
-  async downloadFile(name: string, filename: string, owner?: string): Promise<string> {
+  async downloadFile(name: string, filename: string, owner?: string, version?: string): Promise<string> {
     const cacheKey = owner ? `${owner}/${name}` : name;
     const cached = this._apiCache.get(cacheKey);
     if (cached) {
@@ -77,7 +78,8 @@ export class RegistryClient {
     }
 
     try {
-      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true`);
+      const vq = version ? `&version=${version}` : '';
+      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true${vq}`);
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents) {
@@ -103,9 +105,10 @@ export class RegistryClient {
     return map[key] || key;
   }
 
-  async getSoulFiles(name: string, owner?: string): Promise<string[]> {
+  async getSoulFiles(name: string, owner?: string, version?: string): Promise<string[]> {
     try {
-      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true`);
+      const vq = version ? `&version=${version}` : '';
+      const res = await fetch(`${this.soulApiPath(name, owner)}?files=true${vq}`);
       if (res.ok) {
         const data = await res.json();
         if (data.fileContents) {

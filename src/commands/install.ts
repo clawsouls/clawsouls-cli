@@ -39,16 +39,16 @@ export async function installCommand(nameWithVersion: string, options: { force?:
       process.exit(1);
     }
 
-    spinner.text = `Fetching "${fullName}" metadata...`;
-    const meta = await registry.getSoulMeta(name, owner);
+    spinner.text = `Fetching "${fullName}"${version ? `@${version}` : ''} metadata...`;
+    const meta = await registry.getSoulMeta(name, owner, version);
 
     spinner.text = `Downloading "${fullName}" files...`;
-    const fileList = await registry.getSoulFiles(name, owner);
+    const fileList = await registry.getSoulFiles(name, owner, version);
     const files = new Map<string, string>();
 
     for (const filename of fileList) {
       try {
-        const content = await registry.downloadFile(name, filename, owner);
+        const content = await registry.downloadFile(name, filename, owner, version);
         files.set(filename, content);
       } catch {
         // Skip missing optional files
