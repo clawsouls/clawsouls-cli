@@ -1,0 +1,46 @@
+{
+  "name": "clawsouls",
+  "version": "0.3.0",
+  "description": "CLI for ClawSouls — AI agent persona sharing platform",
+  "main": "dist/index.js",
+  "bin": {
+    "clawsouls": "dist/bin/clawsouls.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/bin/clawsouls.js",
+    "lint": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clawsouls/clawsouls-cli.git"
+  },
+  "keywords": [
+    "ai",
+    "persona",
+    "agent",
+    "openclaw",
+    "soul",
+    "cli"
+  ],
+  "author": "TomLeeLive",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "ora": "^9.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/tar": "^6.1.13",
+    "typescript": "^5.9.3"
+  }
+}
