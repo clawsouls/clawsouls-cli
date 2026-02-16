@@ -4,10 +4,11 @@ import { createInterface } from 'readline';
 
 const API_BASE = 'https://clawsouls.ai/api/v1';
 
+import { getConfig } from '../utils/config.js';
+
 function getToken(): string | null {
   if (process.env.CLAWSOULS_TOKEN) return process.env.CLAWSOULS_TOKEN;
   try {
-    const { getConfig } = require('../utils/config.js');
     const config = getConfig();
     if (config.auth?.token) return config.auth.token;
   } catch {}
