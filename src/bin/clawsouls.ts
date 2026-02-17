@@ -18,7 +18,7 @@ const program = new Command();
 
 program
   .name('clawsouls')
-  .description('AI agent persona manager for OpenClaw')
+  .description('AI agent persona manager (OpenClaw + ZeroClaw)')
   .version(version);
 
 program
