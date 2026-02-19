@@ -33,14 +33,15 @@ function collectFiles(soulDir: string): Record<string, string> {
   return files;
 }
 
-export async function validateCommand(dir?: string): Promise<void> {
+export async function validateCommand(dir?: string, opts?: { soulscan?: boolean }): Promise<void> {
   const soulDir = dir || '.';
 
   const soulJsonPath = join(soulDir, 'soul.json');
   const legacyPath = join(soulDir, 'clawsoul.json');
   const manifestPath = existsSync(soulJsonPath) ? soulJsonPath : legacyPath;
 
-  console.log(chalk.bold(`\nValidating ${soulDir}/...\n`));
+  const runSoulScan = opts?.soulscan ?? false;
+  console.log(chalk.bold(`\n${runSoulScan ? '🔍 SoulScan' : 'Validating'} ${soulDir}/...\n`));
 
   if (!existsSync(manifestPath)) {
     console.log(chalk.red('❌ soul.json missing'));
@@ -65,7 +66,7 @@ export async function validateCommand(dir?: string): Promise<void> {
     const res = await fetch(`${API_BASE}/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ manifest, files }),
+      body: JSON.stringify({ manifest, files, soulscan: runSoulScan }),
     });
 
     const data = await res.json();

@@ -10,6 +10,7 @@ import { publishCommand } from '../commands/publish.js';
 import { loginCommand, logoutCommand, whoamiCommand } from '../commands/login.js';
 import { initCommand } from '../commands/init.js';
 import { validateCommand } from '../commands/validate.js';
+import { soulscanCommand } from '../commands/soulscan.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -73,6 +74,15 @@ program
   .command('validate [dir]')
   .alias('check')
   .description('Validate a soul package against the spec')
-  .action((dir?: string) => validateCommand(dir));
+  .option('--soulscan', 'Include SoulScan security & quality analysis')
+  .action((dir?: string, opts?: { soulscan?: boolean }) => validateCommand(dir, opts));
+
+program
+  .command('soulscan [dir]')
+  .alias('scan')
+  .description('Run SoulScan on active workspace or a soul directory')
+  .option('-q, --quiet', 'Quiet mode for cron (outputs SOULSCAN_OK or SOULSCAN_ALERT)')
+  .option('--init', 'Initialize baseline checksums without alerting on changes')
+  .action((dir?: string, opts?: { quiet?: boolean; init?: boolean }) => soulscanCommand(dir, opts));
 
 program.parse();
