@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { detectPlatform } from './platform.js';
 
 export interface ClawSoulsConfig {
   registry: string;
@@ -16,16 +17,8 @@ const CONFIG_DIR = join(homedir(), '.clawsouls');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 function detectWorkspaceBase(): string {
-  const openclawDir = join(homedir(), '.openclaw');
-  const zeroclawDir = join(homedir(), '.zeroclaw');
-  const platform = process.env.CLAWSOULS_PLATFORM;
-
-  if (platform === 'zeroclaw') return zeroclawDir;
-  if (platform === 'openclaw') return openclawDir;
-
-  // Auto-detect
-  if (existsSync(zeroclawDir) && !existsSync(openclawDir)) return zeroclawDir;
-  return openclawDir; // default
+  const platform = detectPlatform(process.env.CLAWSOULS_PLATFORM);
+  return platform.configDir;
 }
 
 const PLATFORM_BASE = detectWorkspaceBase();

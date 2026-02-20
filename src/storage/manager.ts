@@ -22,10 +22,10 @@ export class StorageManager {
   private workspace: string;
   private backupDir: string;
 
-  constructor() {
+  constructor(workspaceOverride?: string) {
     const config = getConfig();
     this.soulsDir = config.soulsDir;
-    this.workspace = config.workspace;
+    this.workspace = workspaceOverride || config.workspace;
     this.backupDir = join(this.soulsDir, '_backup');
   }
 

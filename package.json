@@ -1,6 +1,6 @@
 {
   "name": "clawsouls",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "CLI for ClawSouls — AI agent persona sharing platform",
   "main": "dist/index.js",
   "bin": {

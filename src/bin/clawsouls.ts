@@ -11,6 +11,7 @@ import { loginCommand, logoutCommand, whoamiCommand } from '../commands/login.js
 import { initCommand } from '../commands/init.js';
 import { validateCommand } from '../commands/validate.js';
 import { soulscanCommand } from '../commands/soulscan.js';
+import { platformCommand } from '../commands/platform.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -19,8 +20,16 @@ const program = new Command();
 
 program
   .name('clawsouls')
-  .description('AI agent persona manager (OpenClaw + ZeroClaw)')
-  .version(version);
+  .description('AI agent persona manager — works with any SOUL.md-compatible agent')
+  .version(version)
+  .option('--platform <name>', 'Override agent platform (openclaw, zeroclaw, clawdbot, moltbot, moldbot, or a path)')
+  .option('--workspace <path>', 'Override workspace directory')
+  .hook('preAction', (thisCommand) => {
+    const opts = thisCommand.opts();
+    if (opts.platform) {
+      process.env.CLAWSOULS_PLATFORM = opts.platform;
+    }
+  });
 
 program
   .command('install <name>')
@@ -31,7 +40,10 @@ program
 program
   .command('use <name>')
   .description('Activate an installed soul (backs up current workspace)')
-  .action(useCommand);
+  .action((name: string) => {
+    const globalOpts = program.opts();
+    useCommand(name, { workspace: globalOpts.workspace });
+  });
 
 program
   .command('restore')
@@ -89,5 +101,11 @@ program
   .option('--verify-audit', 'Verify the audit log hash chain integrity')
   .option('--audit-log', 'Display recent audit log entries')
   .action((dir?: string, opts?: { quiet?: boolean; init?: boolean; restore?: boolean; approve?: boolean; report?: boolean; verifyAudit?: boolean; auditLog?: boolean }) => soulscanCommand(dir, opts));
+
+program
+  .command('platform')
+  .alias('detect')
+  .description('Show detected agent platform(s) and workspace path')
+  .action(platformCommand);
 
 program.parse();

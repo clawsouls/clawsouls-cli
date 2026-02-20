@@ -1,27 +1,13 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
 import { StorageManager } from '../storage/manager.js';
+import { detectPlatform, getPlatformLabel } from '../utils/platform.js';
 
-function getRestartCommand(): string {
-  const platform = process.env.CLAWSOULS_PLATFORM;
-  if (platform === 'zeroclaw') return 'zeroclaw gateway restart';
-  if (platform === 'openclaw') return 'openclaw gateway restart';
-
-  // Auto-detect
-  const hasZeroClaw = existsSync(join(homedir(), '.zeroclaw'));
-  const hasOpenClaw = existsSync(join(homedir(), '.openclaw'));
-  if (hasZeroClaw && !hasOpenClaw) return 'zeroclaw gateway restart';
-  return 'openclaw gateway restart';
-}
-
-export async function useCommand(name: string): Promise<void> {
+export async function useCommand(name: string, opts?: { workspace?: string }): Promise<void> {
   const spinner = ora(`Switching to soul "${name}"...`).start();
 
   try {
-    const storage = new StorageManager();
+    const storage = new StorageManager(opts?.workspace);
 
     if (!storage.isInstalled(name)) {
       spinner.fail(
@@ -39,11 +25,11 @@ export async function useCommand(name: string): Promise<void> {
     spinner.text = `Applying "${name}"...`;
     storage.applySoul(name);
 
-    const restartCmd = getRestartCommand();
+    const platform = detectPlatform(process.env.CLAWSOULS_PLATFORM);
     spinner.succeed(
-      `Switched to ${chalk.green(name)}\n` +
+      `Switched to ${chalk.green(name)} (${getPlatformLabel(platform)})\n` +
       `  ${chalk.dim('Backup saved. Use')} ${chalk.cyan('clawsouls restore')} ${chalk.dim('to revert.')}\n` +
-      `  ${chalk.yellow('⚠')}  Run ${chalk.cyan(restartCmd)} to apply the new persona.`
+      `  ${chalk.yellow('⚠')}  Run ${chalk.cyan(platform.restartCommand)} to apply the new persona.`
     );
   } catch (err: any) {
     spinner.fail(err.message);
