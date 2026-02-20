@@ -7,7 +7,7 @@ const API_BASE = 'https://clawsouls.ai/api/v1';
 // Minimal fallback template if server is unreachable
 const FALLBACK_FILES: Record<string, string> = {
   'soul.json': JSON.stringify({
-    specVersion: '0.3',
+    specVersion: '0.4',
     name: 'my-soul',
     displayName: 'My Soul',
     version: '1.0.0',
@@ -16,7 +16,10 @@ const FALLBACK_FILES: Record<string, string> = {
     license: 'Apache-2.0',
     tags: ['custom'],
     category: 'general',
+    compatibility: { frameworks: ['openclaw'] },
+    allowedTools: [],
     files: { soul: 'SOUL.md', identity: 'IDENTITY.md', agents: 'AGENTS.md', heartbeat: 'HEARTBEAT.md' },
+    disclosure: { summary: 'A custom AI persona.' },
   }, null, 2),
   'SOUL.md': '# My Soul\n\nDescribe your AI persona here.\n',
   'IDENTITY.md': '# My Soul\n\n- **Name:** My Soul\n- **Emoji:** 🤖\n',
@@ -37,7 +40,7 @@ export async function initCommand(name?: string): Promise<void> {
   // Fetch template from server
   let files: Record<string, string>;
   try {
-    const res = await fetch(`${API_BASE}/template?spec=0.3`);
+    const res = await fetch(`${API_BASE}/template?spec=0.4`);
     if (res.ok) {
       const data = await res.json();
       files = data.files;
