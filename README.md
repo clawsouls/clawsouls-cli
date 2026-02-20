@@ -1,6 +1,6 @@
 # 🧠 ClawSouls CLI
 
-**Give your AI a soul.** Install, manage, and switch AI agent personas — works with any SOUL.md-compatible agent.
+**Give your AI a soul.** Install, manage, and switch AI agent personas — built for OpenClaw, works with any SOUL.md-compatible agent.
 
 [![npm](https://img.shields.io/npm/v/clawsouls)](https://www.npmjs.com/package/clawsouls)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
