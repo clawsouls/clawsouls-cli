@@ -83,6 +83,11 @@ program
   .description('Run SoulScan on active workspace or a soul directory')
   .option('-q, --quiet', 'Quiet mode for cron (outputs SOULSCAN_OK or SOULSCAN_ALERT)')
   .option('--init', 'Initialize baseline checksums without alerting on changes')
-  .action((dir?: string, opts?: { quiet?: boolean; init?: boolean }) => soulscanCommand(dir, opts));
+  .option('--restore', 'Auto-restore protected files when drift is detected')
+  .option('--approve', 'Update baselines after intentional changes')
+  .option('--report', 'Output a formatted audit report (for DM/cron)')
+  .option('--verify-audit', 'Verify the audit log hash chain integrity')
+  .option('--audit-log', 'Display recent audit log entries')
+  .action((dir?: string, opts?: { quiet?: boolean; init?: boolean; restore?: boolean; approve?: boolean; report?: boolean; verifyAudit?: boolean; auditLog?: boolean }) => soulscanCommand(dir, opts));
 
 program.parse();
