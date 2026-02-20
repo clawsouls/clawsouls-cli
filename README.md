@@ -170,7 +170,7 @@ my-soul/
 └── README.md        # Documentation
 ```
 
-The spec is open — see [Soul Spec](https://github.com/clawsouls/clawsouls/blob/main/docs/soul-spec.md).
+The spec is open — see [Soul Spec™](https://github.com/clawsouls/clawsouls/blob/main/docs/soul-spec.md).
 
 ## How It Works
 
@@ -200,7 +200,7 @@ The spec is open — see [Soul Spec](https://github.com/clawsouls/clawsouls/blob
 
 - 🌐 [clawsouls.ai](https://clawsouls.ai) — Browse souls
 - 📦 [npm](https://www.npmjs.com/package/clawsouls) — Package
-- 📋 [Soul Spec](https://github.com/clawsouls/clawsouls/blob/main/docs/soul-spec.md) — Create your own
+- 📋 [Soul Spec™](https://github.com/clawsouls/clawsouls/blob/main/docs/soul-spec.md) — Create your own
 - 🐙 [GitHub Org](https://github.com/clawsouls) — Source code
 
 ## License
