@@ -12,6 +12,7 @@ import { initCommand } from '../commands/init.js';
 import { validateCommand } from '../commands/validate.js';
 import { soulscanCommand } from '../commands/soulscan.js';
 import { platformCommand } from '../commands/platform.js';
+import { exportCommand } from '../commands/export.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -101,6 +102,13 @@ program
   .option('--verify-audit', 'Verify the audit log hash chain integrity')
   .option('--audit-log', 'Display recent audit log entries')
   .action((dir?: string, opts?: { quiet?: boolean; init?: boolean; restore?: boolean; approve?: boolean; report?: boolean; verifyAudit?: boolean; auditLog?: boolean }) => soulscanCommand(dir, opts));
+
+program
+  .command('export <format>')
+  .description('Export soul to another format (claude-md, system-prompt)')
+  .option('-o, --output <path>', 'Output file path')
+  .option('-d, --dir <path>', 'Source soul directory (default: active workspace)')
+  .action((format: string, opts: { output?: string; dir?: string }) => exportCommand(format, opts));
 
 program
   .command('platform')
